@@ -137,5 +137,23 @@ int main(void)
     }
     printf("*----------*\n");
 
+    // Call the 2nd shared memory GPU version of convec
+    dim3 block(nnode,ngaus,1);
+    dim3 grid(nelem,1,1);
+    convec_gpuShared2<<<grid,block>>>(nelem,nnode,ngaus,npoints,connec_gpu,
+                                      N_gpu,dN_gpu,wgp_gpu,u_gpu,R_gpu);
+
+    // Copy data from GPU to CPU
+    float *R_gpuShared2 = (float *)malloc(npoints*sizeof(float));
+    cudaMemcpy(R_gpuShared2, R_gpu, npoints*sizeof(float), cudaMemcpyDeviceToHost);
+
+    // Print R_gpuShared2
+    printf("R_gpuShared2 = \n");
+    for (int ipoint = 0; ipoint < npoints; ipoint++)
+    {
+        printf("%d %f\n", ipoint, R_gpuShared2[ipoint]);
+    }
+    printf("*----------*\n");
+
     return 0;
 }
