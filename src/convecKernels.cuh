@@ -20,5 +20,4 @@ __global__ void convec_gpuShared1(int nelem, int nnode, int ngaus, int npoints, 
 __global__ void convec_gpuShared2(int nelem, int nnode, int ngaus, int npoints, int *connec,
     float *N, float *dN, float *w, float *u, float *R);
 
-
 #endif // CONVEC_KERNELS_H

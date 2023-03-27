@@ -155,5 +155,32 @@ int main(void)
     }
     printf("*----------*\n");
 
+    // Generate constant memory for connec, N, dN and wgp
+    __constant__ int connec_const[nelem*nnode];
+    __constant__ float N_const[nnode*ngaus];
+    __constant__ float dN_const[nnode*ngaus];
+    __constant__ float wgp_const[ngaus];
+
+    cudaMemcpyToSymbol(connec_const, connec, nelem*nnode*sizeof(int));
+    cudaMemcpyToSymbol(N_const, N, nnode*ngaus*sizeof(float));
+    cudaMemcpyToSymbol(dN_const, dN, nnode*ngaus*sizeof(float));
+    cudaMemcpyToSymbol(wgp_const, wgp, ngaus*sizeof(float));
+
+    // Call the 2nd shared memory GPU version of convec using constant memory
+    convec_gpuShared2<<<grid,block>>>(nelem,nnode,ngaus,npoints,connec_const,
+                                             N_const,dN_const,wgp_const,u_gpu,R_gpu);
+
+    // Copy data from GPU to CPU
+    float *R_gpuShared2_const = (float *)malloc(npoints*sizeof(float));
+    cudaMemcpy(R_gpuShared2_const, R_gpu, npoints*sizeof(float), cudaMemcpyDeviceToHost);
+
+    // Print R_gpuShared2_const
+    printf("R_gpuShared2_const = \n");
+    for (int ipoint = 0; ipoint < npoints; ipoint++)
+    {
+        printf("%d %f\n", ipoint, R_gpuShared2_const[ipoint]);
+    }
+    printf("*----------*\n");
+    
     return 0;
 }
