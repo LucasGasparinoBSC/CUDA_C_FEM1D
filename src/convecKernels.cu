@@ -125,8 +125,8 @@ __global__ void convec_gpuShared2(int nelem, int nnode, int ngaus, int npoints, 
 	//{
 	//	v_shared[igaus] += dN[igaus*nnode + jnode]*u_shared[jnode];
 	//}
-	atomicAdd(&v_shared[igaus], dN[igaus*nnode + inode]*u_shared[inode]);
 	//__syncthreads();
+	atomicAdd(&v_shared[igaus], dN[igaus*nnode + inode]*u_shared[inode]);
 
 	// Atomically update R
 	atomicAdd(&R[connec[ielem*nnode + inode]], w[igaus]*N[igaus*nnode + inode]*v_shared[igaus]);
