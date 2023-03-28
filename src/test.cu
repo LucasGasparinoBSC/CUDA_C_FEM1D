@@ -8,8 +8,8 @@
 
 //__constant__ float xgp_cte[MAX_NGAUS];
 __constant__ float wgp_cte[MAX_NGAUS];
-//__constant__ float N_cte[MAX_NGAUS*MAX_NNODE];
-//__constant__ float dN_cte[MAX_NGAUS*MAX_NNODE];
+__constant__ float N_cte[MAX_NGAUS*MAX_NNODE];
+__constant__ float dN_cte[MAX_NGAUS*MAX_NNODE];
 
 __global__ void convec_gpuConst(int nelem, int nnode, int ngaus, int npoints, int *connec,
                                 float *N, float *dN, float *w, float *u, float *R)
@@ -37,10 +37,10 @@ __global__ void convec_gpuConst(int nelem, int nnode, int ngaus, int npoints, in
     //	v_shared[igaus] += dN[igaus*nnode + jnode]*u_shared[jnode];
     //}
     //__syncthreads();
-    atomicAdd(&v_shared[igaus], dN[igaus*nnode + inode]*u_shared[inode]);
+    atomicAdd(&v_shared[igaus], dN_cte[igaus*nnode + inode]*u_shared[inode]);
 
     // Atomically update R
-    atomicAdd(&R[connec[ielem*nnode + inode]], wgp_cte[igaus]*N[igaus*nnode + inode]*v_shared[igaus]);
+    atomicAdd(&R[connec[ielem*nnode + inode]], wgp_cte[igaus]*N_cte[igaus*nnode + inode]*v_shared[igaus]);
     __syncthreads();
 }
 
@@ -205,8 +205,10 @@ int main(void)
     }
     printf("*----------*\n");
 
-    // Fill the constant memory wgp_cte
+    // Fill the constant memory wgp_cte, N_cte, and dN_cte
     cudaMemcpyToSymbol(wgp_cte, wgp, ngaus*sizeof(float), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(N_cte, N, nnode*ngaus*sizeof(float), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(dN_cte, dN, nnode*ngaus*sizeof(float), 0, cudaMemcpyHostToDevice);
     
     // Call the constant memory GPU version of convec
     convec_gpuConst<<<grid,block>>>(nelem,nnode,ngaus,npoints,connec_gpu,
