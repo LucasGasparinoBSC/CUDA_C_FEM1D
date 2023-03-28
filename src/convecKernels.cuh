@@ -3,6 +3,7 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "defConstants.cuh"
 
 // CPU version
 void convec_cpu(int nelem, int nnode, int ngaus, int npoints, int *connec,

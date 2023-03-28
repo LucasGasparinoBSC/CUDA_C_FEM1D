@@ -2,10 +2,53 @@
 #include <stdlib.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "defConstants.cuh"
+#include "genData.cuh"
 #include "convecKernels.cuh"
+
+//__constant__ float xgp_cte[MAX_NGAUS];
+__constant__ float wgp_cte[MAX_NGAUS];
+//__constant__ float N_cte[MAX_NGAUS*MAX_NNODE];
+//__constant__ float dN_cte[MAX_NGAUS*MAX_NNODE];
+
+__global__ void convec_gpuConst(int nelem, int nnode, int ngaus, int npoints, int *connec,
+                                float *N, float *dN, float *w, float *u, float *R)
+{
+    // Create shared memory
+    __shared__ float u_shared[8]; // Max 3 nodes per element
+    __shared__ float v_shared[8]; // Max 3 Gauss points per element
+
+    // Set ielem and inode according to block and thread indices
+    int ielem = blockIdx.x;
+    int inode = threadIdx.x;
+    int igaus = threadIdx.y;
+
+    // Ensure R is zero
+    R[connec[ielem*nnode + inode]] = 0.0f;
+
+    // Fill shared memory
+    v_shared[igaus] = 0.0f;
+    u_shared[inode] = u[connec[ielem*nnode + inode]];
+    __syncthreads();
+
+    // Compute dN*u_shared at each Gauss point
+    //for (int jnode = 0; jnode < nnode; jnode++)
+    //{
+    //	v_shared[igaus] += dN[igaus*nnode + jnode]*u_shared[jnode];
+    //}
+    //__syncthreads();
+    atomicAdd(&v_shared[igaus], dN[igaus*nnode + inode]*u_shared[inode]);
+
+    // Atomically update R
+    atomicAdd(&R[connec[ielem*nnode + inode]], wgp_cte[igaus]*N[igaus*nnode + inode]*v_shared[igaus]);
+    __syncthreads();
+}
 
 int main(void)
 {
+    // Var for error checking
+    int ierr;
+
     // Set mesh details
     int nelem = 2;
     int nnode = 3;
@@ -42,10 +85,17 @@ int main(void)
     printf("*----------*\n");
 
     // Set quadrature points
+    float *xgp = (float *)malloc(ngaus*sizeof(float));
     float *wgp = (float *)malloc(ngaus*sizeof(float));
-    wgp[0] = 1.0f;
-    wgp[1] = 1.0f;
-    wgp[2] = 1.0f;
+    ierr = quadratureData(ngaus,xgp,wgp);
+    if (ierr != 0)
+    {
+        printf("Error in quadratureData\n");
+        return EXIT_FAILURE;
+    }
+    //wgp[0] = 1.0f;
+    //wgp[1] = 1.0f;
+    //wgp[2] = 1.0f;
 
     // Set N and dN
     float *N = (float *)malloc(nnode*ngaus*sizeof(float));
@@ -155,32 +205,24 @@ int main(void)
     }
     printf("*----------*\n");
 
-    // Generate constant memory for connec, N, dN and wgp
-    __constant__ int connec_const[nelem*nnode];
-    __constant__ float N_const[nnode*ngaus];
-    __constant__ float dN_const[nnode*ngaus];
-    __constant__ float wgp_const[ngaus];
-
-    cudaMemcpyToSymbol(connec_const, connec, nelem*nnode*sizeof(int));
-    cudaMemcpyToSymbol(N_const, N, nnode*ngaus*sizeof(float));
-    cudaMemcpyToSymbol(dN_const, dN, nnode*ngaus*sizeof(float));
-    cudaMemcpyToSymbol(wgp_const, wgp, ngaus*sizeof(float));
-
-    // Call the 2nd shared memory GPU version of convec using constant memory
-    convec_gpuShared2<<<grid,block>>>(nelem,nnode,ngaus,npoints,connec_const,
-                                             N_const,dN_const,wgp_const,u_gpu,R_gpu);
+    // Fill the constant memory wgp_cte
+    cudaMemcpyToSymbol(wgp_cte, wgp, ngaus*sizeof(float), 0, cudaMemcpyHostToDevice);
+    
+    // Call the constant memory GPU version of convec
+    convec_gpuConst<<<grid,block>>>(nelem,nnode,ngaus,npoints,connec_gpu,
+                                     N_gpu,dN_gpu,wgp_gpu,u_gpu,R_gpu);
 
     // Copy data from GPU to CPU
-    float *R_gpuShared2_const = (float *)malloc(npoints*sizeof(float));
-    cudaMemcpy(R_gpuShared2_const, R_gpu, npoints*sizeof(float), cudaMemcpyDeviceToHost);
+    float *R_gpuConst = (float *)malloc(npoints*sizeof(float));
+    cudaMemcpy(R_gpuConst, R_gpu, npoints*sizeof(float), cudaMemcpyDeviceToHost);
 
-    // Print R_gpuShared2_const
-    printf("R_gpuShared2_const = \n");
+    // Print R_gpuConst
+    printf("R_gpuConst = \n");
     for (int ipoint = 0; ipoint < npoints; ipoint++)
     {
-        printf("%d %f\n", ipoint, R_gpuShared2_const[ipoint]);
+        printf("%d %f\n", ipoint, R_gpuConst[ipoint]);
     }
     printf("*----------*\n");
-    
+
     return 0;
 }

@@ -1,0 +1,7 @@
+#ifndef DEFCONSTANTS_H
+#define DEFCONSTANTS_H
+
+#define MAX_NGAUS 3
+#define MAX_NNODE 3
+
+#endif // DEFCONSTANTS_H
