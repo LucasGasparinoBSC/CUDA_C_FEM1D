@@ -6,6 +6,7 @@
 #include "genData.cuh"
 #include "convecKernels.cuh"
 
+__constant__ int connec_cte[2*MAX_NNODE];
 //__constant__ float xgp_cte[MAX_NGAUS];
 __constant__ float wgp_cte[MAX_NGAUS];
 __constant__ float N_cte[MAX_NGAUS*MAX_NNODE];
@@ -24,11 +25,11 @@ __global__ void convec_gpuConst(int nelem, int nnode, int ngaus, int npoints, in
     int igaus = threadIdx.y;
 
     // Ensure R is zero
-    R[connec[ielem*nnode + inode]] = 0.0f;
+    R[connec_cte[ielem*nnode + inode]] = 0.0f;
 
     // Fill shared memory
     v_shared[igaus] = 0.0f;
-    u_shared[inode] = u[connec[ielem*nnode + inode]];
+    u_shared[inode] = u[connec_cte[ielem*nnode + inode]];
     __syncthreads();
 
     // Compute dN*u_shared at each Gauss point
@@ -40,7 +41,7 @@ __global__ void convec_gpuConst(int nelem, int nnode, int ngaus, int npoints, in
     atomicAdd(&v_shared[igaus], dN_cte[igaus*nnode + inode]*u_shared[inode]);
 
     // Atomically update R
-    atomicAdd(&R[connec[ielem*nnode + inode]], wgp_cte[igaus]*N_cte[igaus*nnode + inode]*v_shared[igaus]);
+    atomicAdd(&R[connec_cte[ielem*nnode + inode]], wgp_cte[igaus]*N_cte[igaus*nnode + inode]*v_shared[igaus]);
     __syncthreads();
 }
 
@@ -60,7 +61,7 @@ int main(void)
     printf("nelem = %d\n", nelem);
     printf("nnode = %d\n", nnode);
     printf("ngaus = %d\n", ngaus);
-    printf("npoints = %d\n", npoints);
+
     printf("*----------*\n");
 
     // Create connectivity table
@@ -205,7 +206,8 @@ int main(void)
     }
     printf("*----------*\n");
 
-    // Fill the constant memory wgp_cte, N_cte, and dN_cte
+    // Fill the constant memory connec_cte, wgp_cte, N_cte, and dN_cte
+    cudaMemcpyToSymbol(connec_cte, connec, nelem*nnode*sizeof(int), 0, cudaMemcpyHostToDevice);
     cudaMemcpyToSymbol(wgp_cte, wgp, ngaus*sizeof(float), 0, cudaMemcpyHostToDevice);
     cudaMemcpyToSymbol(N_cte, N, nnode*ngaus*sizeof(float), 0, cudaMemcpyHostToDevice);
     cudaMemcpyToSymbol(dN_cte, dN, nnode*ngaus*sizeof(float), 0, cudaMemcpyHostToDevice);
