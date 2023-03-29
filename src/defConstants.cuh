@@ -3,5 +3,6 @@
 
 #define MAX_NGAUS 8
 #define MAX_NNODE 8
+#define MAX_ORDER MAX_NNODE-1
 
 #endif // DEFCONSTANTS_H
