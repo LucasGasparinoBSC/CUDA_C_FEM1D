@@ -2,6 +2,7 @@
 #define MESHGEN_H
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "defConstants.cuh"
 
 // Create a node class
@@ -12,14 +13,19 @@ class Node
         float n_X;
         float n_Val;
     public:
-        Node(int n, float f, float v);
+        Node();
+        Node(Node &in);
+        Node(int &n, float &f, float &v);
         ~Node();
-        int get_nId();
-        float get_nX();
-        float get_nVal();
-        void set_nId(int n);
-        void set_nX(float f);
-        void set_nVal(float f);
+        inline const int& get_nId();
+        inline const float& get_nX();
+        inline const float& get_nVal();
+        inline int& extract_nId();
+        inline float& extract_nX();
+        inline float& extract_nVal();
+        inline void set_nId(int &n);
+        inline void set_nX(float &f);
+        inline void set_nVal(float &v);
 };
 
 // Create a Gauss point class that inherits from the Node class
@@ -28,40 +34,34 @@ class GaussPoint : public Node
     private:
         float gp_Weight;
     public:
-        float get_gpWeight();
-        void set_gpWeight(float w);
+        inline GaussPoint();
+        inline GaussPoint(GaussPoint &in);
+        inline GaussPoint(int &n, float &f, float &v, float &w);
+        inline ~GaussPoint();
+        inline const float& get_gpWeight();
+        inline float& extract_gpWeight();
+        inline void set_gpWeight(float &w);
 };
 
-// Create an Element class
-class Element
+// Create a Master element class
+class MasterElement
 {
-    private:
-        int e_Id;
+    protected:
         int e_Order;
         int e_NumNodes;
         int e_NumGPs;
-        Node *e_Nodes;
-        GaussPoint *e_GPs;
+        int e_hoNodes;
+        int *e_NodeOrdering;
+        float *e_Ngp;
+        float *e_dNgp;
     public:
-        Element(int id, int p);
-        ~Element();
-        int get_eId();
+        MasterElement(int p){};
+        ~MasterElement();
         int get_eOrder();
         int get_eNumNodes();
-        int get_eNumGP();
-        Node *get_eNodes();
-        GaussPoint *get_eGPs();
-        void set_eId(int id);
-        void set_eOrder(int p);
-};
-
-// Create a Mesh class
-class Mesh
-{
-    private:
-        int m_NumElements;
-        int m_NumNodes;
-    public:
+        int get_eNumGPs();
+        int get_ehoNodes();
+        int *get_eMasterNodes();
 };
 
 #endif // MESHGEN_H
