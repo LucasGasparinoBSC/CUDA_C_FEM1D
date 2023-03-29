@@ -54,14 +54,46 @@ class MasterElement
         int *e_NodeOrdering;
         float *e_Ngp;
         float *e_dNgp;
+        GaussPoint *e_GaussPoints;
+    private:
+        inline void createGaussPoints();
+        inline void createNodeOrdering();
+        inline void createShapeFunctions();
     public:
-        MasterElement(int p){};
-        ~MasterElement();
-        int get_eOrder();
-        int get_eNumNodes();
-        int get_eNumGPs();
-        int get_ehoNodes();
-        int *get_eMasterNodes();
+        inline MasterElement();
+        inline MasterElement(MasterElement &in);
+        inline MasterElement(int &p);
+        inline ~MasterElement();
+        inline const int& get_eOrder();
+        inline const int& get_eNumNodes();
+        inline const int& get_eNumGPs();
+        inline const int& get_ehoNodes();
+        inline const int* get_eNodeOrdering();
+        inline const float* get_eNgp();
+        inline const float* get_edNgp();
+        inline const GaussPoint* get_eGaussPoints();
+        inline int& extract_eOrder();
+        inline int& extract_eNumNodes();
+        inline int& extract_eNumGPs();
+        inline int& extract_ehoNodes();
+        inline int* extract_eNodeOrdering();
+        inline float* extract_eNgp();
+        inline float* extract_edNgp();
+        inline GaussPoint* extract_eGaussPoints();
+};
+
+// Create an Element class that extends the MasterElement class
+class Element : public MasterElement
+{
+    private:
+        int e_Id;
+        float e_Length;
+        Node *e_Nodes;
+    public:
+        inline Element();
+        inline Element(Element &in);
+        inline Element(int &p, int &id);
+        inline ~Element();
 };
 
 #endif // MESHGEN_H
