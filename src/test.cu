@@ -101,14 +101,20 @@ int main(void)
     // Set N and dN
     float *N = (float *)malloc(nnode*ngaus*sizeof(float));
     float *dN = (float *)malloc(nnode*ngaus*sizeof(float));
-    for (int igaus = 0; igaus < ngaus; igaus++)
+    ierr = elementData(ngaus,nnode,xgp,N,dN);
+    if (ierr != 0)
     {
-        for (int inode = 0; inode < nnode; inode++)
-        {
-            N[igaus*nnode + inode] = 1.0f;
-            dN[igaus*nnode + inode] = 0.5f;
-        }
+        printf("Error in elementData\n");
+        return EXIT_FAILURE;
     }
+    //for (int igaus = 0; igaus < ngaus; igaus++)
+    //{
+    //    for (int inode = 0; inode < nnode; inode++)
+    //    {
+    //        N[igaus*nnode + inode] = 1.0f;
+    //        dN[igaus*nnode + inode] = 0.5f;
+    //    }
+    //}
 
     // Set initial condition u
     float *u = (float *)malloc(npoints*sizeof(float));

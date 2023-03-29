@@ -1,7 +1,7 @@
 #ifndef DEFCONSTANTS_H
 #define DEFCONSTANTS_H
 
-#define MAX_NGAUS 3
-#define MAX_NNODE 3
+#define MAX_NGAUS 8
+#define MAX_NNODE 8
 
 #endif // DEFCONSTANTS_H
